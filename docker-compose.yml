@@ -1,0 +1,41 @@
+zookeeper:
+    image: garland/zookeeper
+    container_name: zookeeper
+    ports:
+        - "2181:2181"
+master:
+    image: mesosphere/mesos:1.0.1-2.0.93.ubuntu1404
+    container_name: master
+    links:
+        - zookeeper
+    command: mesos-master --work_dir=/tmp --zk=zk://zookeeper:2181/mesos --quorum=1
+    ports:
+        - "5050:5050"
+slave1:
+    image: mesosphere/mesos:1.0.1-2.0.93.ubuntu1404
+    container_name: slave1
+    links:
+        - zookeeper
+        - master
+    volumes:
+        - "/sys/fs/cgroup:/sys/fs/cgroup"
+        - "/var/run/docker.sock:/var/run/docker.sock"
+    command: mesos-slave --work_dir=/tmp --master=zk://zookeeper:2181/mesos --containerizers=docker
+slave2:
+    image: mesosphere/mesos:1.0.1-2.0.93.ubuntu1404
+    container_name: slave2
+    links:
+        - zookeeper
+        - master
+    volumes:
+        - "/sys/fs/cgroup:/sys/fs/cgroup"
+        - "/var/run/docker.sock:/var/run/docker.sock"
+    command: mesos-slave --work_dir=/tmp --master=zk://zookeeper:2181/mesos --containerizers=docker
+marathon:
+    image: mesosphere/marathon
+    container_name: marathon
+    links:
+        - zookeeper
+    command: --master zk://zookeeper:2181/mesos --zk zk://zookeeper:2181/marathon
+    ports:
+        - "8080:8080"
